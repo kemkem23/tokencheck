@@ -2,6 +2,7 @@
 from .common import Attempt, LIB_DIR, first_json, iso, parse_time, window
 from datetime import datetime
 import json
+import os
 import select
 import subprocess
 import sys
@@ -42,32 +43,40 @@ def codex_app_server(now: datetime, _ctx: dict) -> dict:
               "params": {"clientInfo": {"name": "pacer-tokencheck", "version": "1.0"}}})
         send({"jsonrpc": "2.0", "method": "initialized"})
         send({"jsonrpc": "2.0", "id": 2, "method": "account/rateLimits/read"})
-        deadline = time.time() + 25
-        while time.time() < deadline:
+        deadline = time.monotonic() + 25
+        pending = b""
+        while time.monotonic() < deadline:
             r, _, _ = select.select([p.stdout], [], [], 1)
             if not r:
                 continue
-            line = p.stdout.readline()
-            if not line:
+            # readline() can wait forever for a newline after select() reports
+            # a partial response. Read available bytes and frame them ourselves.
+            chunk = os.read(p.stdout.fileno(), 65536)
+            if not chunk:
                 break
-            try:
-                o = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if o.get("id") == 2:
-                if "error" in o:
-                    raise Attempt("rate_limits_rpc_error")
-                res = o.get("result") or {}
-                rl = res.get("rateLimits") or {}
-                prov = codex_windows_from_rl(rl, now, "codex_app_server")
-                credits = rl.get("credits") or {}
-                prov["extras"] = {
-                    "credits_balance": credits.get("balance"),
-                    "spend_control_reached": rl.get("spendControlReached"),
-                    "rate_limit_reached_type": rl.get("rateLimitReachedType"),
-                    "reset_credits_available": (res.get("rateLimitResetCredits") or {}).get("availableCount"),
-                }
-                return prov
+            pending += chunk
+            if len(pending) > 1 << 20:
+                raise Attempt("app_server_response_too_large")
+            while b"\n" in pending:
+                line, pending = pending.split(b"\n", 1)
+                try:
+                    o = json.loads(line)
+                except (json.JSONDecodeError, UnicodeError):
+                    continue
+                if isinstance(o, dict) and o.get("id") == 2:
+                    if "error" in o:
+                        raise Attempt("rate_limits_rpc_error")
+                    res = o.get("result") or {}
+                    rl = res.get("rateLimits") or {}
+                    prov = codex_windows_from_rl(rl, now, "codex_app_server")
+                    credits = rl.get("credits") or {}
+                    prov["extras"] = {
+                        "credits_balance": credits.get("balance"),
+                        "spend_control_reached": rl.get("spendControlReached"),
+                        "rate_limit_reached_type": rl.get("rateLimitReachedType"),
+                        "reset_credits_available": (res.get("rateLimitResetCredits") or {}).get("availableCount"),
+                    }
+                    return prov
         raise Attempt("app_server_timeout")
     finally:
         try:
@@ -75,6 +84,8 @@ def codex_app_server(now: datetime, _ctx: dict) -> dict:
             p.wait(5)
         except Exception:
             pass
+        p.stdin.close()
+        p.stdout.close()
 
 
 def codex_tokscale(now: datetime, _ctx: dict) -> dict:

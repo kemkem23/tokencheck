@@ -229,7 +229,11 @@ class Watcher:
                 headers["Authorization"] = header if header.lower().startswith("bearer ") else f"Bearer {header}"
         try:
             req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=15) as r:
+            # A configured endpoint may receive credentials; never forward them
+            # through an inherited proxy or a redirect to a different endpoint.
+            from selfcheck import NoRedirect
+            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+            with opener.open(req, timeout=15) as r:
                 result = f"http_{r.status}"
         except urllib.error.HTTPError as e:
             result = f"http_{e.code}"

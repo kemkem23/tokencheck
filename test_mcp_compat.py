@@ -30,6 +30,10 @@ class CompatibilityTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory(prefix="mcp-compat-")
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
+        self.home = self.root / 'home'
+        self.home.mkdir()
+        self.config = self.root / 'fixture-config.json'
+        self.config.write_text('{"enabled_providers": []}')
         server = (SOURCE / "mcp_server.py").read_text()
         (self.root / "mcp_server.py").write_text(server)
         (self.root / "config.py").write_text(
@@ -59,7 +63,9 @@ async def main():
 """ + textwrap.indent(textwrap.dedent(body).strip(), " ") + "\nasyncio.run(main())\n"
         result = subprocess.run(
             [sys.executable, "-c", code], cwd="/tmp",
-            env={"PYTHONPATH": str(self.root), "PATH": "/usr/bin:/bin", "LC_ALL": "C.UTF-8"},
+            env={"HOME": str(self.home), "PACER_CONFIG": str(self.config),
+                 "PYTHONPATH": str(self.root), "PYTHONDONTWRITEBYTECODE": "1",
+                 "PATH": "/usr/bin:/bin", "LC_ALL": "C.UTF-8"},
             capture_output=True, text=True, timeout=10,
         )
         self.assertEqual(result.returncode, 0, result.stderr)

@@ -64,12 +64,15 @@ print(json.dumps(sorted(mcp_server.mcp._tool_manager._tools)))
 '''
         config = Path(self.temp.name) / 'config.json'
         config.write_text(json.dumps({'state_dir':str(Path(self.temp.name)/'state'),'enabled_providers':[]}))
+        home = Path(self.temp.name) / 'home'
+        home.mkdir()
         import_source = Path(self.temp.name) / 'import-source'
         import_source.mkdir()
         server = (SOURCE / 'mcp_server.py').read_text()
         (import_source / 'mcp_server.py').write_text(server)
         result = subprocess.run([sys.executable,'-c',code,str(import_source),str(SOURCE)], cwd='/tmp',
-                                env={'PACER_CONFIG':str(config),'LC_ALL':'C.UTF-8'},
+                                env={'HOME':str(home),'PACER_CONFIG':str(config),
+                                     'PYTHONDONTWRITEBYTECODE':'1','LC_ALL':'C.UTF-8'},
                                 capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertEqual(json.loads(result.stdout), sorted([

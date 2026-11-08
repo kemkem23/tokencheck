@@ -282,6 +282,35 @@ frame();setImmediate(()=>{if(fetched!==2||!nodes['#updated'].textContent)throw E
         self.assertEqual(result.returncode,0,result.stderr)
 
 class WatcherTests(Offline):
+    def test_authenticated_webhook_disables_proxies_and_rejects_redirects(self):
+        import pacer_daemon as service
+        watcher=service.Watcher(self.root,SimpleNamespace())
+        watcher.state['providers']={'daemon':{'since':'2026-01-01T00:00:00Z','state':'unhealthy'}}
+        requests=[]
+        class Opener:
+            def open(self,request,timeout):
+                requests.append(request)
+                response=io.BytesIO();response.status=204
+                return response
+        for header in ('synthetic-fixture','X-Fixture-Auth: synthetic-fixture'):
+            with self.subTest(header=header), patch.dict(os.environ,{'https_proxy':'http://proxy.invalid'}), \
+                 patch.object(service,'webhook_config',return_value=('https://configured.invalid/hook',header)), \
+                 patch.object(service.socket,'gethostname',return_value='fixture-host'), \
+                 patch.object(service,'log'), patch('urllib.request.build_opener',return_value=Opener()) as build:
+                incident={'id':'fixture','notified':[]}
+                watcher.post(['daemon'],incident,'2026-01-01T00:00:00Z')
+            proxy,redirect=build.call_args.args
+            self.assertEqual(proxy.proxies,{})
+            request=requests[-1]
+            self.assertEqual(request.full_url,'https://configured.invalid/hook')
+            self.assertEqual(request.get_method(),'POST')
+            self.assertEqual(request.get_header('Authorization') or request.get_header('X-fixture-auth'),
+                             'Bearer synthetic-fixture' if ':' not in header else 'synthetic-fixture')
+            self.assertEqual(json.loads(request.data)['host'],'fixture-host')
+            for code in (301,302,303,307,308):
+                self.assertIsNone(redirect.redirect_request(request,None,code,'redirect',{},'https://elsewhere.invalid/'))
+            self.assertEqual(incident['post_result'],'http_204')
+
     def test_disabled_providers_clear_outage_without_notifications(self):
         # Import lifecycle module only: no main(), collector loop, or server startup.
         import pacer_daemon as service

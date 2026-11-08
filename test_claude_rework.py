@@ -9,9 +9,10 @@ import socket
 import subprocess
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import formatdate
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import claude_capture as capture
@@ -84,6 +85,15 @@ class OfflineTest(unittest.TestCase):
 
 
 class IsolatedLoginTests(OfflineTest):
+    def test_symlink_outside_isolated_profile_is_rejected_before_read(self):
+        profile=self.state/'profile';profile.mkdir()
+        outside=self.state/'other-profile.json'
+        outside.write_text('{}')
+        (profile/'.credentials.json').symlink_to(outside)
+        with patch.dict(os.environ,{'PACER_CLAUDE_CONFIG_DIR':str(profile)}), \
+             patch('pathlib.Path.read_text',side_effect=AssertionError('credential must not be read')):
+            self.assertIsNone(PROFILE_TOKEN_READER())
+
     def test_only_dedicated_or_configured_credentials_are_read(self):
         for configured in (None,'/isolated/test-login'):
             with self.subTest(configured=configured):
@@ -111,6 +121,82 @@ class IsolatedLoginTests(OfflineTest):
         with patch.dict(os.environ,{'PACER_CLAUDE_CONFIG_DIR':str(claude.HOME/'.claude')}), patch('pathlib.Path.read_text') as read:
             with self.assertRaises(ValueError): PROFILE_TOKEN_READER()
             read.assert_not_called()
+
+
+class CodexTransportTests(OfflineTest):
+    def pipe_process(self, data):
+        read_fd,write_fd=os.pipe()
+        reader=os.fdopen(read_fd,'rb')
+        os.write(write_fd,data)
+        # An unterminated response must not call a blocking line reader. Keep
+        # the writer open, just as a stalled CLI would, without a real CLI.
+        def readline():
+            raise AssertionError('blocking readline on an open partial response')
+        process=SimpleNamespace(stdin=io.StringIO(),
+                                stdout=SimpleNamespace(fileno=reader.fileno,close=reader.close,readline=readline))
+        def kill():
+            os.close(write_fd)
+        def wait(timeout):
+            process.sent=[json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        process.kill=kill;process.wait=wait
+        self.addCleanup(reader.close)
+        return process
+
+    def test_unterminated_app_server_response_respects_deadline(self):
+        process=self.pipe_process(b'{"id":2,"result":')
+        clock=iter((0,0,26))
+        with patch('providers.common.which',return_value='/mock/codex'), \
+             patch('providers.codex.subprocess.Popen',return_value=process), \
+             patch.object(codex,'time',SimpleNamespace(monotonic=lambda:next(clock))), \
+             self.assertRaisesRegex(collectors.Attempt,'app_server_timeout'):
+            codex.codex_app_server(dt(),{})
+        self.assertTrue(process.stdin.closed)
+
+    def test_buffered_notifications_and_reply_send_only_usage_rpcs(self):
+        reply={'id':2,'result':{'rateLimits':{'primary':{'windowDurationMins':300,'usedPercent':7,'resetsAt':T+18000}}}}
+        data=b'not-json\n[]\n'+json.dumps({'method':'fixture/notification'}).encode()+b'\n'+json.dumps(reply).encode()+b'\n'
+        process=self.pipe_process(data)
+        with patch('providers.common.which',return_value='/mock/codex'), \
+             patch('providers.codex.subprocess.Popen',return_value=process):
+            result=codex.codex_app_server(dt(),{})
+        self.assertEqual(result['windows'][0]['used_percent'],7)
+        self.assertEqual([request['method'] for request in process.sent],
+                         ['initialize','initialized','account/rateLimits/read'])
+
+
+class GrokSafetyTests(OfflineTest):
+    def collect(self, panes):
+        self.commands=[]
+        def tmux(*args, **kwargs):
+            self.commands.append(args)
+            return 0,''
+        with patch('providers.grok.shutil.which',return_value='/mock/tmux'), \
+             patch('providers.common.which',return_value='/mock/grok'), \
+             patch('providers.grok._tmux',side_effect=tmux), \
+             patch('providers.grok._pane',side_effect=panes), patch('providers.grok.time.sleep'):
+            return grok.grok_dashboard_usage(dt(),{})
+
+    def test_nonempty_dashboard_input_is_untouched_and_never_submitted(self):
+        pane='No agents yet\nTab:list\n│ ❯ existing unsent text │'
+        with self.assertRaisesRegex(collectors.Attempt,'input_not_empty_refusing_to_type'):
+            self.collect([pane])
+        self.assertFalse(any(command[0]=='send-keys' for command in self.commands))
+
+    def test_missing_slash_popup_or_submenu_never_submits_a_prompt(self):
+        pane='No agents yet\nTab:list\n│ ❯ Dispatch a new agent │'
+        for panes,reason,enters in (([pane]+['no slash popup']*10,'slash_popup_missing_aborted',0),
+                                   ([pane,'❯ /usage View usage']+['no usage submenu']*15,'usage_submenu_missing_aborted',1)):
+            with self.subTest(reason=reason),self.assertRaisesRegex(collectors.Attempt,reason):
+                self.collect(panes)
+            self.assertEqual(sum('Enter' in command for command in self.commands),enters)
+
+    def test_usage_menu_reads_synthetic_modal_without_agent_commands(self):
+        pane='No agents yet\nTab:list\n│ ❯ Dispatch a new agent │'
+        reset=(dt()+timedelta(days=1)).astimezone(common.ICT)
+        modal='No agents yet\nWeekly limit (Fixture)\n████ 12%\nResets: '+reset.strftime('%B %d, %H:%M')
+        result=self.collect([pane,'❯ /usage View usage','❯ show View usage','❯ show View usage',modal,modal,pane])
+        self.assertEqual(result['parsed']['used_percent'],12)
+        self.assertEqual([command[-1] for command in self.commands if command[0]=='send-keys'],['/usage','Enter','Enter'])
 
 
 class CaptureTests(OfflineTest):

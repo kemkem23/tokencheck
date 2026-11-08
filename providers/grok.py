@@ -112,10 +112,7 @@ def grok_dashboard_usage(now: datetime, _ctx: dict) -> dict:
         if "No agents yet" not in pane and "+ New Agent" not in pane:
             raise Attempt("dashboard_not_visible")
         if not _grok_input_empty(pane):
-            _tmux("send-keys", "-t", GROK_TMUX, *(["BSpace"] * 60))
-            time.sleep(0.3)
-            if not _grok_input_empty(_pane()):
-                raise Attempt("input_not_empty_refusing_to_type")
+            raise Attempt("input_not_empty_refusing_to_type")
         _tmux("send-keys", "-t", GROK_TMUX, "-l", "/usage")
         # Safety gate: only press Enter when Grok shows /usage as a slash command
         # (otherwise Enter would create an agent and spend tokens).

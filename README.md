@@ -25,6 +25,8 @@ The tool runs entirely on one box. Provider usage reads can use that box's exist
 
 Use Linux, Python 3.11 or newer with `venv` and pip, and the provider CLIs you enable. On Debian/Ubuntu, install the distribution packages `python3`, `python3-venv`, and `python3-pip` if missing. Grok additionally needs tmux. Install provider CLIs manually through their normal distribution channels; this installer does not download or configure them. Subscription access and supported usage commands are external prerequisites.
 
+The usage transports require compatible CLI commands: Codex `app-server` with `account/rateLimits/read` (optional `tokscale usage --json` fallback), Grok `dashboard` with the `/usage` → `show` menu, and AGY's non-inference `/usage` print command. Do not enable a provider whose CLI treats those commands as prompts. Recheck compatibility after CLI upgrades; the offline suite mocks these programs and does not verify the behavior of a user's installed version. Use a dedicated Grok dashboard pane without concurrent typing or other automation. The optional Claude login instructions below also use tmux; a separate terminal can be used instead.
+
 The daemon, CLI, HTTP dashboard, history cache, and statusline capture use the Python standard library. MCP needs `mcp`; PNG export uses `resvg-py==0.5.0` with a bundled Thai/Latin Noto Sans Thai font (SIL OFL 1.1). Matplotlib remains a lazy fallback. `requirements.txt` pins the direct packages to the versions inspected in the existing environment. Transitive dependencies are resolved by pip; this is not a complete dependency lockfile.
 
 Place the source in a directory such as `$HOME/.local/lib/pacer-tokencheck`. `providers/claude.py`, `codex.py`, `grok.py`, and `agy.py` contain the transports; `collectors.py` only orchestrates them and writes cache contracts. `core.py` owns pure quota/pacing calculations, `daemon.py` owns publication and base HTTP handling, and `pacer_daemon.py` owns the process lifecycle and outage watcher.
@@ -202,7 +204,7 @@ For an unavailable Grok provider, inspect the dedicated tmux dashboard and safe 
 
 If a phone cannot reach the dashboard, verify local readiness and the separately configured tailnet forward/allowed Host. Network exposure is optional. This refactor does not diagnose or repair a tailnet timeout.
 
-The outage watcher and cron starter remain available. The watcher persists per-provider health and debounces optional configured webhook notifications after a sustained outage. Merely enabling the tool does not configure a notification endpoint. An explicitly configured webhook sends the local hostname, provider health, and safe collector attempt summaries to that endpoint; leave it unset for no outbound notifications.
+The outage watcher and cron starter remain available. The watcher persists per-provider health and debounces optional configured webhook notifications after a sustained outage. Merely enabling the tool does not configure a notification endpoint. An explicitly configured webhook sends the local hostname, provider health, and safe collector attempt summaries to that endpoint; leave it unset for no outbound notifications. Webhook requests disable inherited proxies and reject redirects, including redirects that could forward a configured authorization header. Use the final HTTPS endpoint when configuring an authenticated webhook.
 
 Offline checks:
 
