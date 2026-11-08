@@ -1,0 +1,120 @@
+<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Tokencheck · Usage vs Pace</title>
+<style>
+:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;font-size:12px;background:#050914;color:#dcecf6;--cyan:#53e7ff;--violet:#b497ff;--muted:#9baec4;--edge:rgba(91,191,223,.23)}
+*{box-sizing:border-box}body{margin:0;min-width:0;min-height:100svh;background:radial-gradient(ellipse at 85% 12%,rgba(107,58,181,.18),transparent 48%),radial-gradient(ellipse at 5% 48%,rgba(0,143,173,.12),transparent 50%),#050914;isolation:isolate}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:radial-gradient(1px 1px at 23px 31px,#c1eaff99 90%,transparent),radial-gradient(1px 1px at 79px 113px,#b497ff80 90%,transparent),radial-gradient(1px 1px at 143px 67px,#ffffff55 90%,transparent),linear-gradient(#55cfff04 1px,transparent 1px),linear-gradient(90deg,#55cfff04 1px,transparent 1px);background-size:193px 211px,277px 251px,337px 313px,48px 48px,48px 48px}
+main{max-width:1320px;margin:auto;padding:24px max(22px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));min-width:0}
+h1{font-size:clamp(17px,2.4vw,25px);line-height:1.3;font-weight:650;letter-spacing:-.04em;margin:0 0 8px;color:#effcff;text-shadow:0 0 24px #53e7ff33}
+h1::before{content:"";display:inline-block;width:7px;height:7px;margin:0 10px 3px 0;background:var(--cyan);box-shadow:0 0 12px #53e7ff;border-radius:50%}
+p{color:var(--muted);line-height:1.65;overflow-wrap:anywhere}#updated{margin:0;font-size:11px}.top{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center;padding-bottom:16px;border-bottom:1px solid var(--edge)}.top>div{min-width:0}
+nav{display:flex;gap:4px;padding:4px;background:#091526cc;border:1px solid var(--edge);border-radius:8px;box-shadow:inset 0 0 18px #53e7ff06}
+button{font:inherit;font-size:12px;min-width:54px;min-height:44px;padding:8px 16px;border:1px solid transparent;border-radius:5px;color:var(--muted);background:transparent;cursor:pointer;touch-action:manipulation}
+button:hover{color:#fff;background:#53e7ff0d}button[aria-pressed=true]{border-color:#53e7ff77;background:linear-gradient(135deg,#53e7ff24,#8b5cf620);color:#a5f4ff;box-shadow:inset 0 0 16px #53e7ff0d,0 0 12px #53e7ff0c}button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.legend{display:flex;gap:18px;align-items:center;flex-wrap:wrap;color:var(--muted);margin:15px 0 12px;font-size:11px}.legend span{display:flex;align-items:center;gap:7px;min-width:0;overflow-wrap:anywhere}.solid,.dash{width:23px;border-top:2px solid var(--cyan);box-shadow:0 0 7px #53e7ff55}.dash{border-top:2px dashed var(--violet);box-shadow:none}#history{font-size:11px;color:var(--violet)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{position:relative;min-width:0;background:linear-gradient(135deg,#112136c9,#0a1024d9);border:1px solid var(--edge);border-radius:9px;padding:15px;box-shadow:inset 0 1px 0 #a5f4ff09,0 8px 28px #0003;backdrop-filter:blur(12px)}.card::before{content:"";position:absolute;top:-1px;left:16px;width:42px;height:2px;background:var(--cyan);box-shadow:0 0 10px #53e7ff66}.cardhead{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.card h2{min-width:0;font-size:13px;line-height:1.5;margin:0;font-weight:600;overflow-wrap:anywhere}.big{font-size:25px;line-height:1.2;font-weight:600;color:var(--cyan);font-variant-numeric:tabular-nums;text-shadow:0 0 18px #53e7ff33;overflow-wrap:anywhere}.sub{font-size:11px;color:var(--violet);margin:5px 0 10px}
+.plot{position:relative;min-width:0}.plot svg{display:block;width:100%;height:auto;overflow:visible}.plot svg text{fill:#a8bfd2;font-family:inherit}.plot svg line{stroke:#42728b;stroke-opacity:.3}.plot svg path[fill="#629cff"]{fill:var(--cyan);fill-opacity:.07}.plot svg path[stroke="#629cff"]{stroke:var(--cyan);filter:drop-shadow(0 0 3px #53e7ff88)}.plot svg path[stroke="#a0aab9"]{stroke:var(--violet);filter:drop-shadow(0 0 2px #b497ff55)}
+.tip{position:absolute;display:none;pointer-events:none;max-width:100%;background:#07101ff2;color:#eefbff;border:1px solid #53e7ff77;border-radius:5px;padding:8px;font-size:11px;line-height:1.65;z-index:2;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 4px 20px #0008}
+.tablewrap{min-width:0;margin:16px 0 18px;border:1px solid var(--edge);border-radius:9px;background:#0b1526bc;backdrop-filter:blur(12px)}table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #53e7ff16;overflow-wrap:anywhere}th{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#99cbdc;background:#53e7ff07;font-weight:500}th:first-child{border-top-left-radius:9px}th:last-child{border-top-right-radius:9px}tr:last-child td{border-bottom:0}tbody tr:hover{background:#53e7ff04}.num{text-align:right;font-variant-numeric:tabular-nums}.used{color:var(--cyan)}.bar{height:3px;background:#53e7ff12;margin-top:6px;border-radius:3px;overflow:hidden}.bar i{height:100%;display:block;background:var(--cyan);box-shadow:0 0 7px #53e7ff66}.error{color:#ffb7bc;font-size:11px}.error:empty{display:none}footer{margin:18px 0 0;color:var(--muted);font-size:11px;line-height:1.8;overflow-wrap:anywhere}
+@media(min-width:761px){main{padding-top:max(24px,env(safe-area-inset-top))}}
+@media(max-width:760px){main{padding: max(16px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}.grid{grid-template-columns:1fr}.card{padding:13px}.top{gap:12px}.legend{gap:14px}.plot svg text{font-size:18px}.tablewrap{border:0;background:none;backdrop-filter:none}table,tbody{display:block}thead{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}tbody{display:grid;gap:10px}tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--edge);border-radius:8px;background:#0b1526d9;padding:5px}td,.num{display:block;min-width:0;text-align:left;padding:8px 9px;border:0;font-size:12px;line-height:1.6}td::before{display:block;margin-bottom:3px;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase}td:nth-child(1)::before{content:"Provider"}td:nth-child(2)::before{content:"Plan"}td:nth-child(3)::before{content:"Window"}td:nth-child(4)::before{content:"Used %"}td:nth-child(5)::before{content:"Pace %"}td:nth-child(6)::before{content:"Reset in"}}
+@media(max-width:380px){.plot svg text{font-size:20px}.card{padding:10px}.big{font-size:23px}}
+.mobile-only{display:none}
+@media(max-width:600px){
+ main{padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+ .top{flex-wrap:nowrap;gap:8px;padding-bottom:6px;height:42px}.top>div{display:contents}
+ h1{margin:0;font-size:13px;white-space:nowrap;letter-spacing:-.04em}h1::before{width:5px;height:5px;margin:0 5px 2px 0}.desktop-title{display:none}
+ #updated{font-size:0;white-space:nowrap;line-height:1;margin-left:auto}#updated::after{content:attr(data-time);font-size:10px;color:var(--muted)}
+ nav{gap:1px;padding:2px;border-radius:6px;flex-shrink:0}button{min-width:29px;min-height:30px;padding:4px;font-size:11px}
+ .legend{flex-wrap:nowrap;gap:12px;height:22px;margin:4px 0;font-size:9px}.legend span{gap:4px}.solid,.dash{width:16px}#history{font-size:9px;margin-left:auto}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ /* Reserve 42px header + 30px legend + 24px row gaps, including safe areas. */
+ .card{min-height:136px;height:min(136px,calc((100svh - max(8px,env(safe-area-inset-top)) - max(8px,env(safe-area-inset-bottom)) - 96px)/5));padding:8px;display:flex;flex-direction:column;border-radius:7px}.card::before{left:9px;width:25px}
+ .cardhead{flex-wrap:nowrap;align-items:start;gap:4px}.card h2{font-size:10px;line-height:1.3;flex:1;overflow-wrap:anywhere}.big{font-size:18px;line-height:1.1;white-space:nowrap;letter-spacing:-.06em}
+ .sub{display:flex;justify-content:space-between;align-items:center;gap:3px;margin:5px 0 2px;font-size:9px;line-height:1.4;white-space:nowrap}.reset{color:var(--muted)}
+ .mobile-only{display:block}.plan{font-size:9px;line-height:1.4;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+ .plot{flex:1;min-height:0}.plot svg{height:100%;overflow:hidden}.plot svg text,.plot .chart-grid{display:none}.plot svg path[stroke]{vector-effect:non-scaling-stroke;stroke-width:1.5;filter:none}.plot svg path[stroke="#a0aab9"]{stroke-dasharray:4 3}
+ .card>p{position:absolute;bottom:16px;left:8px;right:8px;margin:0;font-size:9px;text-align:center;pointer-events:none}
+ .tip{font-size:9px;padding:4px;line-height:1.4}.tablewrap,footer{display:none}.error{margin:4px 0;font-size:10px}
+}
+@media(prefers-reduced-transparency:reduce){.card,.tablewrap{backdrop-filter:none;background:#0b1526}}
+</style>
+<main><div class="top"><div><h1>Tokencheck<span class="desktop-title"> · Usage vs Pace</span></h1><p id="updated" role="status" data-time="กำลังโหลด…">กำลังโหลดข้อมูล…</p></div><nav aria-label="ช่วงเวลา"><button data-hours="24">1d</button><button data-hours="72">3d</button><button data-hours="168" aria-pressed="true">7d</button></nav></div><p id="error" class="error" role="alert"></p>
+<div class="legend"><span><i class="solid"></i>Usage</span><span><i class="dash"></i>Pace</span><span id="history"></span></div><div class="grid" id="charts"></div><div class="tablewrap"><table><thead><tr><th>Provider</th><th>Plan</th><th>Window</th><th class="num">Used %</th><th class="num">Pace %</th><th class="num">Reset in</th></tr></thead><tbody id="rows"></tbody></table></div>
+<footer>รีเฟรชอัตโนมัติทุก 60 วินาที · เวลา ICT (UTC+7) · Pace = สัดส่วนเวลาที่ผ่านไปในหน้าต่างโควตา</footer></main>
+<script id="pacer-snapshot" type="application/json">__PACER_SNAPSHOT__</script>
+<script>
+'use strict';
+performance.mark('pacer-script-start');
+const $=s=>document.querySelector(s);let hours=168,requestId=0;
+const mobileLayout=window.matchMedia('(max-width:600px)');
+
+// History returns ISO UTC strings; also normalize epoch seconds/milliseconds.
+const timestamp=t=>{if(typeof t==='number'||(typeof t==='string'&&t.trim()!==''&&Number.isFinite(Number(t)))){const n=Number(t);return Math.abs(n)<1e12?n*1000:n;}return typeof t==='string'?Date.parse(t):NaN;};
+const axisFormat=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',day:'2-digit',month:'short',hour:'2-digit',hourCycle:'h23'});
+const axisLabel=(t,range)=>{const parts=Object.fromEntries(axisFormat.formatToParts(new Date(t)).map(p=>[p.type,p.value]));return (range===24?'':parts.day+' '+parts.month+' ')+parts.hour+':00';};
+const axisObserver=new ResizeObserver(entries=>entries.forEach(({target})=>target.drawAxis()));
+const time=(t,long=false)=>new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',...(long?{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'}:hours===24?{hour:'2-digit',minute:'2-digit'}:{weekday:'short',hour:'2-digit',hourCycle:'h23'})}).format(new Date(t));
+const paceLabel=w=>w.started===false?'ยังไม่เริ่ม':pct(w.pace_percent)+'%';
+const pct=v=>Number.isFinite(v)?v.toFixed(2):'—';const clamp=v=>Math.max(0,Math.min(100,v));
+function sourceLabel(source){return ({claude_statusline:'local',claude_oauth_usage:'OAuth local',claude_oauth_cache:'OAuth'})[source]||'—';}
+function age(w,checkedAt){const seconds=w.measured_at?Math.max(0,(new Date(checkedAt)-new Date(w.measured_at))/1000):w.age_seconds;if(seconds==null||!Number.isFinite(seconds))return 'อายุ —';return 'อายุ '+(seconds<60?Math.floor(seconds)+'s':seconds<3600?Math.floor(seconds/60)+'m':Math.floor(seconds/3600)+'h');}
+function reset(t,now){let s=Math.max(0,Math.floor((new Date(t)-new Date(now))/1000));if(!Number.isFinite(s))return '—';const d=Math.floor(s/86400),h=Math.floor(s%86400/3600);return d?`${d}d ${h}h`:`${h}h ${Math.floor(s%3600/60)}m`;}
+function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
+function svg(tag,attrs,text){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;}
+function chart(provider,w,points,now=Date.now(),plan,checkedAt=now){
+ const range=hours,first=now-range*3600000,last=now,span=last-first;
+ points=points.map(p=>({...p,t:timestamp(p.t)})).filter(p=>Number.isFinite(p.t)&&p.t>=first&&p.t<=last).sort((a,b)=>a.t-b.t);
+ const card=el('section',undefined,'card'),header=el('div',undefined,'cardhead');header.append(el('h2',provider+' · '+w.label),el('div',pct(w.used_percent)+'%', 'big'));const sub=el('div',undefined,'sub');sub.append(el('span','Pace '+paceLabel(w)),el('span','↻ '+reset(w.resets_at,checkedAt),'reset mobile-only'));sub.lastChild.title='Reset in '+reset(w.resets_at,checkedAt);const planLabel=el('div',plan||'—','plan mobile-only');planLabel.title='Plan: '+(plan||'—');const sourceAge=el('div',sourceLabel(w.source)+' · '+age(w,checkedAt),'reset');sourceAge.style.fontSize='10px';sourceAge.title=(w.source||'unknown')+' · '+(w.measured_at||'unknown');card.append(header,sub,planLabel,sourceAge);
+ if(!points.length)card.append(el('p','กำลังเก็บประวัติของหน้าต่างนี้'));
+ const box=el('div',undefined,'plot'),tip=el('div',undefined,'tip'),s=svg('svg',{viewBox:'0 0 620 270',role:'img','aria-label':provider+' '+w.label+' Usage and Pace, percent'});box.append(s,tip);card.append(box);
+ const L=42,R=600,T=15,B=225;
+ const x=p=>L+(p.t-first)/span*(R-L),y=v=>B-clamp(v)/100*(B-T);
+ const grid=svg('g',{class:'chart-grid'});s.append(grid);
+ for(const v of [0,25,50,75,100]){grid.append(svg('line',{x1:L,y1:y(v),x2:R,y2:y(v),stroke:'#334155','stroke-width':1}),svg('text',{x:L-9,y:y(v)+5,'text-anchor':'end',fill:'#bfcbdb','font-size':14},String(v)));}
+ const ticks=svg('g',{});s.append(ticks);
+ s.drawAxis=()=>{
+  const compact=mobileLayout.matches;
+  s.setAttribute('viewBox',compact?`${L} ${T} ${R-L} ${B-T}`:'0 0 620 270');
+  s.setAttribute('preserveAspectRatio',compact?'none':'xMidYMid meet');
+  if(compact){ticks.replaceChildren();return;}
+  const width=s.getBoundingClientRect().width;if(!width)return;
+  const startHour=Math.ceil(first/3600000),endHour=Math.floor(last/3600000);
+  // Measure rendered pixels, including the existing responsive font sizes.
+  for(let count=Math.min(8,Math.max(2,Math.floor(width*(R-L)/620/(range===24?65:110))+1));count>=2;count--){
+   ticks.replaceChildren();let right=-Infinity,overlap=false;
+   for(let i=0;i<count;i++){
+    const t=(startHour+Math.round(i*(endHour-startHour)/(count-1)))*3600000;
+    const label=svg('text',{x:x({t}),y:254,'text-anchor':i===0?'start':i===count-1?'end':'middle',fill:'#bfcbdb','font-size':14},axisLabel(t,range));ticks.append(label);
+    const bounds=label.getBoundingClientRect();if(bounds.left<right+12)overlap=true;right=bounds.right;
+   }
+   if(!overlap)break;
+  }
+ };
+ const path=key=>{let pen=false;return points.map(p=>{if(!Number.isFinite(p[key])){pen=false;return '';}const cmd=pen?'L':'M';pen=true;return cmd+x(p).toFixed(2)+','+y(p[key]).toFixed(2);}).join(' ');};
+ if(points.length)s.append(svg('path',{d:path('used')+` L${x(points[points.length-1])},${B} L${x(points[0])},${B} Z`,fill:'#629cff','fill-opacity':0.12}));
+ s.append(svg('path',{d:path('used'),fill:'none',stroke:'#629cff','stroke-width':3,'stroke-linejoin':'round'}),svg('path',{d:w.started===false?'':path('pace'),fill:'none',stroke:'#a0aab9','stroke-width':2,'stroke-dasharray':'7 6'}));
+ const cross=svg('line',{x1:L,x2:L,y1:T,y2:B,stroke:'#d4deec','stroke-opacity':0.5,visibility:'hidden'});s.append(cross);
+ s.addEventListener('pointermove',e=>{if(!points.length)return;const b=s.getBoundingClientRect(),v=mobileLayout.matches?L+(e.clientX-b.left)/b.width*(R-L):(e.clientX-b.left)/b.width*620,target=first+(v-L)/(R-L)*span;let p=points.reduce((a,b)=>Math.abs(a.t-target)<Math.abs(b.t-target)?a:b);cross.setAttribute('x1',x(p));cross.setAttribute('x2',x(p));cross.setAttribute('visibility','visible');tip.textContent=time(p.t,true)+' ICT\nUsage '+pct(p.used)+'%\nPace '+pct(p.pace)+'%';tip.style.display='block';tip.style.top='8px';tip.style.left=Math.max(0,Math.min(e.clientX-b.left+12,b.width-195))+'px';});
+ s.addEventListener('pointerleave',()=>{tip.style.display='none';cross.setAttribute('visibility','hidden');});return card;
+}
+let currentSnapshot=null,currentHistory={series:[],history_hours:0};
+function render(snap,h){const view=snap.results.all;
+ const now=Date.now(),rows=document.createDocumentFragment(),cards=document.createDocumentFragment();const ORDER=['grok','claude','codex','agy'];const rank=x=>{const i=ORDER.indexOf(x.provider);return i<0?99:i};for(const p of [...view.providers].sort((a,b)=>rank(a)-rank(b))){for(const w of p.windows){const row=el('tr');for(const value of [p.provider,p.plan||'—',w.label])row.append(el('td',value));const used=el('td',pct(w.used_percent),'num used'),bar=el('div',undefined,'bar'),fill=el('i');fill.style.width=clamp(w.used_percent)+'%';if(w.used_percent-w.pace_percent>20)fill.style.background='#ef9385';bar.append(fill);used.append(bar);row.append(used,el('td',w.started===false?'ยังไม่เริ่ม':pct(w.pace_percent),'num'),el('td',reset(w.resets_at,view.checked_at),'num'));rows.append(row);const series=h.series.find(s=>s.provider===p.provider&&s.window===w.label);cards.append(chart(p.provider,w,series?series.points:[],now,p.plan,view.checked_at));}}
+ $('#rows').replaceChildren(rows);axisObserver.disconnect();$('#charts').replaceChildren(cards);document.querySelectorAll('.plot svg').forEach(s=>{s.drawAxis();axisObserver.observe(s);});$('#updated').textContent='อัปเดต '+time(view.checked_at,true)+' ICT';$('#updated').dataset.time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(view.checked_at));$('#history').textContent=h.history_hours<hours?'history: '+h.history_hours.toFixed(1)+'h so far':'';$('#error').textContent='';performance.mark('pacer-view-rendered');
+
+}
+async function refresh(){const id=++requestId;document.querySelectorAll('button[data-hours]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.hours)===hours)));
+ // Current cards render independently of history latency and failures.
+ if(currentSnapshot)render(currentSnapshot,currentHistory);
+ const historyTask=fetch('/v1/history?hours='+hours,{signal:AbortSignal.timeout(20000)})
+  .then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json();})
+  .then(h=>{if(id!==requestId)return;currentHistory=h;if(currentSnapshot)render(currentSnapshot,h);performance.mark('pacer-history-rendered');})
+  .catch(e=>{if(id===requestId)$('#history').textContent='History unavailable';});
+ try{const response=await fetch('/v1/snapshot',{cache:'no-store',signal:AbortSignal.timeout(20000)});if(!response.ok)throw Error('HTTP '+response.status);const snap=await response.json();if(id!==requestId)return;currentSnapshot=snap;render(snap,currentHistory);
+ }catch(e){if(id===requestId)$('#error').textContent='รีเฟรชไม่สำเร็จ — แสดงข้อมูลล่าสุดที่โหลดได้ · '+e.message;}}
+document.querySelectorAll('button[data-hours]').forEach(b=>b.addEventListener('click',()=>{hours=Number(b.dataset.hours);try{localStorage.setItem('tokencheck-hours',String(hours));}catch{}refresh();}));
+try{currentSnapshot=JSON.parse($('#pacer-snapshot').textContent);if(currentSnapshot)render(currentSnapshot,currentHistory);}catch{}
+performance.mark('pacer-initial-render-complete');
+// Yield a frame for the initial cards before starting history I/O.
+requestAnimationFrame(()=>setTimeout(refresh,0));setInterval(refresh,60000);
+</script></html>

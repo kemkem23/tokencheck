@@ -1,0 +1,54 @@
+# Local environments and credentials
+venv/
+.venv/
+credentials/
+.credentials*
+**/.credentials*
+.env
+.env.*
+!.env.example
+# User configuration and runtime output
+config.toml
+config.json
+userconfig/
+state/
+history/
+logs/
+archives/
+*.log
+*.jsonl
+*.pid
+*.lock
+*.bak*
+__pycache__/
+*.py[cod]
+
+# Agent workspace metadata is never part of the source export
+.aws/
+.codex/
+.agents/
+agent-tools/
+
+# Additional local auth/runtime artifacts
+auth.json
+**/auth.json
+claude-usage-config/
+**/claude-usage-config/
+snapshot.json
+sources.json
+collector-status.json
+unhealthy-since.json
+grok-usage.json
+webhook.url
+
+# Build/test caches and local distribution archives
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+build/
+dist/
+*.egg-info/
+*.zip
+*.tar
+*.tar.gz

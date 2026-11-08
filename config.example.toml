@@ -1,0 +1,11 @@
+# Paths expand ~ using the process HOME. No credentials belong in this file.
+state_dir = "~/.local/share/pacer-tokencheck"
+port = 48829
+poll_interval = 60
+oauth_interval = 600
+# Dedicated subscription login profile, separate from ~/.claude.
+claude_config_dir = "~/.local/share/pacer-tokencheck/claude-usage-config"
+# Opt in only after setting up the selected local provider CLIs.
+enabled_providers = []
+grok_tmux_pane = "pacer-grokusage"
+allowed_hosts = []
