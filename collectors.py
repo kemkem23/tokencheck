@@ -87,7 +87,8 @@ class Collector:
         now = util.utcnow()
         now_iso = iso(now)
         ctx = {"core": self.core, "state": self.state,
-               "previous_claude": self.last.get("claude"), "oauth_interval": self.config.oauth_interval}
+               "previous_claude": self.last.get("claude"), "oauth_interval": self.config.oauth_interval,
+               "claude_auto_refresh": self.config.claude_auto_refresh}
         results: dict[str, tuple[dict | None, list[dict]]] = {}
         threads = []
         for name in CHAINS:
@@ -136,6 +137,8 @@ class Collector:
                     error_code=attempts[-1].get("reason") if attempts else "no_method")
             status_providers[name] = {"winner": prov["source"] if prov else None,
                                       "state": self.sources[key]["state"], "attempts": attempts}
+            if name == "claude" and ctx.get("claude_token_refresh") is not None:
+                status_providers[name]["token_refresh"] = ctx["claude_token_refresh"]
 
         # Grok -> grok-usage.json (cache contract schema v2)
         gprov, gatt = results.get("grok", (None, [{"method": "thread", "ok": False, "reason": "timeout"}]))

@@ -5,6 +5,8 @@ poll_interval = 60
 oauth_interval = 600
 # Dedicated subscription login profile, separate from ~/.claude.
 claude_config_dir = "~/.local/share/pacer-tokencheck/claude-usage-config"
+# Renew that profile's access token ahead of expiry via `claude auth status` (no inference).
+claude_auto_refresh = true
 # Opt in only after setting up the selected local provider CLIs.
 enabled_providers = []
 grok_tmux_pane = "pacer-grokusage"

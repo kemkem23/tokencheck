@@ -17,6 +17,7 @@ class Config:
     enabled_providers: tuple = ()
     grok_tmux_pane: str = 'pacer-grokusage'
     allowed_hosts: tuple = ()
+    claude_auto_refresh: bool = True
 
     def json(self):
         return dict(asdict(self), state_dir=str(self.state_dir), claude_config_dir=str(self.claude_config_dir))
@@ -62,6 +63,8 @@ def load_config(path=None):
         if key=='allowed_hosts' and any(any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-:' for c in x) for x in value):
             raise ValueError('invalid allowed_hosts')
         raw[key]=tuple(value)
+    if type(raw.get('claude_auto_refresh', True)) is not bool:
+        raise ValueError('invalid claude_auto_refresh')
     pane=raw.get('grok_tmux_pane','pacer-grokusage')
     if not isinstance(pane,str) or not pane or pane.startswith('-') or any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-.:%' for c in pane):
         raise ValueError('invalid grok_tmux_pane')

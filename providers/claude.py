@@ -15,6 +15,7 @@ from . import common as util
 from config import load_config
 from claude_oauth_cache import OAuthCache, merge_windows
 from claude_capture import read_json, stamp
+import claude_token_refresh
 
 CLAUDE_STATUSLINE_CACHE = load_config().state_dir / "claude-statusline.json"
 CLAUDE_STATUSLINE_MAX_AGE = 15 * 60
@@ -189,8 +190,22 @@ def box_only_claude(provider: dict | None) -> dict | None:
     return dict(provider, windows=windows) if windows else None
 
 
+def claude_token_renewal(ctx: dict) -> dict | None:
+    """Renew the isolated access token ahead of expiry; never raises, never logs secrets."""
+    if not ctx.get("claude_auto_refresh"):
+        return None
+    state = Path(ctx.get("state", CLAUDE_STATUSLINE_CACHE.parent))
+    try:
+        return claude_token_refresh.maybe_refresh(state, load_config().claude_config_dir, log=log)
+    except Exception as error:
+        return {"enabled": True, "last_result": "error_" + error.__class__.__name__}
+
+
 def claude_collect(now: datetime, ctx: dict) -> tuple[dict | None, list[dict]]:
     providers, attempts = [], []
+    renewal = claude_token_renewal(ctx)
+    if renewal is not None:
+        ctx["claude_token_refresh"] = renewal
     for method, fn in (("claude_statusline", claude_statusline),
                        ("claude_oauth_shared", claude_oauth_usage)):
         started = time.monotonic()
