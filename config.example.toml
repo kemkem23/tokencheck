@@ -11,3 +11,7 @@ claude_auto_refresh = true
 enabled_providers = []
 grok_tmux_pane = "pacer-grokusage"
 allowed_hosts = []
+# Optional edge dashboard push (see edge/README.md). Disabled by default.
+edge_push_enabled = false
+# edge_push_url = "https://<WORKER_NAME>.<SUBDOMAIN>.workers.dev/ingest"
+# edge_push_secret_file = "~/.secrets/tokencheck-edge-ingest-secret"

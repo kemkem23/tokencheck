@@ -18,6 +18,9 @@ class Config:
     grok_tmux_pane: str = 'pacer-grokusage'
     allowed_hosts: tuple = ()
     claude_auto_refresh: bool = True
+    edge_push_enabled: bool = False
+    edge_push_url: str = ''
+    edge_push_secret_file: str = ''
 
     def json(self):
         return dict(asdict(self), state_dir=str(self.state_dir), claude_config_dir=str(self.claude_config_dir))
@@ -65,6 +68,17 @@ def load_config(path=None):
         raw[key]=tuple(value)
     if type(raw.get('claude_auto_refresh', True)) is not bool:
         raise ValueError('invalid claude_auto_refresh')
+    if type(raw.get('edge_push_enabled', False)) is not bool:
+        raise ValueError('invalid edge_push_enabled')
+    for key in ('edge_push_url', 'edge_push_secret_file'):
+        if not isinstance(raw.get(key, ''), str):
+            raise ValueError(f'invalid {key}')
+    if raw.get('edge_push_enabled'):
+        if not raw.get('edge_push_url', '').startswith('https://') or any(c in raw['edge_push_url'] for c in ' \n\r\t'):
+            raise ValueError('edge_push_url must be an https URL')
+        if not raw.get('edge_push_secret_file'):
+            raise ValueError('edge_push_secret_file is required when edge_push_enabled')
+        raw['edge_push_secret_file'] = str(Path(raw['edge_push_secret_file']).expanduser())
     pane=raw.get('grok_tmux_pane','pacer-grokusage')
     if not isinstance(pane,str) or not pane or pane.startswith('-') or any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-.:%' for c in pane):
         raise ValueError('invalid grok_tmux_pane')

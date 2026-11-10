@@ -2,6 +2,7 @@
 from providers.common import Attempt, iso, parse_time, log, set_logger
 from providers import claude, codex, grok, agy, common as util
 from config import load_config
+import edge_push
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable
@@ -67,6 +68,7 @@ class Collector:
         self.sources: dict[str, dict] = {}
         self.status: dict[str, Any] = {}
         self.lock = threading.Lock()
+        self.edge = edge_push.EdgePusher.from_config(self.config, state_dir, log=log)
         try:
             prev = json.loads(self.sources_file.read_text())
             self.generation = int(prev.get("source_generation") or 0)
@@ -192,8 +194,11 @@ class Collector:
             self.status = {"polled_at": now_iso, "poll_seconds": self.config.poll_interval,
                            "generation": self.generation, "providers": status_providers,
                            "remote_collection": "disabled", "ssh_calls": 0,
-                           "extras": {}, "token_spend": "none (usage/rate-limit reads only)"}
+                           "extras": {}, "token_spend": "none (usage/rate-limit reads only)",
+                           "edge_push": self.edge.status if self.edge else {"enabled": False}}
             self.write(self.status_file, self.status)
+        if self.edge is not None:
+            self.edge.kick()  # background thread; never blocks or delays polling
         summary = " ".join(f"{n}={v['winner'] or ('disabled' if v['state'] == 'disabled' else 'FAIL:' + (v['attempts'][-1].get('reason', '?') if v['attempts'] else '?'))}"
                            for n, v in status_providers.items())
         log(f"poll gen={self.generation} remote_collection=disabled ssh_calls=0 {summary}")

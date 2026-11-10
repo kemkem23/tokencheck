@@ -79,6 +79,9 @@ allowed_hosts = []
 | `port` | Loopback HTTP port, integer 1–65535; default 48829. |
 | `poll_interval` | Integer 60–86400 seconds; default 60. Slow polls schedule the next poll without a burst of catch-up requests. |
 | `oauth_interval` | Integer 600–604800 seconds; default 600. Persistent cooldown and Retry-After can defer it further. |
+| `edge_push_enabled` | Optional push of a compact snapshot to an edge dashboard after each poll (default `false`). |
+| `edge_push_url` | HTTPS ingest URL, e.g. `https://<worker>.<subdomain>.workers.dev/ingest`. |
+| `edge_push_secret_file` | File (mode 600) holding the ingest bearer secret; read at push time, never logged. |
 | `claude_auto_refresh` | Renew the isolated Claude access token ahead of expiry through the normal CLI (default `true`). |
 | `claude_config_dir` | Isolated profile; defaults to `<state_dir>/claude-usage-config`. The default interactive Claude directory is rejected. |
 | `enabled_providers` | Unique subset of `grok`, `claude`, `codex`, `agy`; `[]` (the default) disables all collection. |
@@ -116,6 +119,8 @@ env -u CLAUDE_CODE_OAUTH_TOKEN -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u C
 ```
 
 Use the **claude.ai subscription** login. Do not use setup-token. Never paste tokens into commands or logs. Insufficient-scope credentials, or an expired refresh grant, require re-login through this normal isolated flow; the monitor never falls back to another login.
+
+**Edge dashboard (optional).** With `edge_push_enabled = true`, `edge_push.py` posts a compact JSON snapshot after each poll: percentages, pace, reset times, observation ages and a 24 h history in 10-minute buckets. It contains no tokens, emails, account IDs or paths. Pushes run on a background thread with a 10 s timeout, at most once per 60-second poll (at least 55 s apart), and back off up to 15 minutes on failure. Status (`last_ok_at`, `last_error`, `consecutive_failures`, …) appears under `edge_push` in `/v1/collector`. The receiving Cloudflare Worker lives in `edge/` (see `edge/README.md`). It stores the latest snapshot in one SQLite-backed Durable Object, which fits the free plan; KV's 1,000 writes per day does not cover per-minute pushes. It serves one unlisted, self-contained page at `/<read key>/`.
 
 **Access-token renewal.** Claude access tokens last about eight hours. With `claude_auto_refresh = true` (the default) the collector reads only `expiresAt` from the isolated `.credentials.json` on each poll. Within 60 minutes of expiry, or after it, it runs `claude auth status` with `CLAUDE_CONFIG_DIR` set to the isolated profile and a minimal allowlisted environment: no inherited `CLAUDE_CONFIG_DIR`, API keys, setup-tokens or environment OAuth tokens. There is no shell, a 60-second timeout and discarded output. The CLI performs its own normal refresh and rewrites the profile; no inference is used. Attempts are at least 600 seconds apart. If the CLI judges the token still fresh, the next try lands inside its own near-expiry window; failures back off 10, 20, 40 and then 60 minutes. Non-secret results (`last_result`, `last_ok_at`, `access_token_expires_at`, `next_refresh_at`, failures) are kept in `<state>/claude-token-refresh.json` and shown under `providers.claude.token_refresh` in `/v1/collector`. Renewal never touches the OAuth usage cache, lock, `next_due` or backoff; a renewed token is used when the gate is next due. `python3 claude_token_refresh.py` prints the plan without running anything, and `--run` renews now if due.
 

@@ -52,3 +52,5 @@ dist/
 *.zip
 *.tar
 *.tar.gz
+edge/dist/
+edge/wrangler.toml
