@@ -29,6 +29,12 @@ assert.match(page.headers.get('x-robots-tag'), /noindex/);
 const html = await page.text();
 assert.match(html, /GROK/); assert.match(html, /3%/); assert.match(html, /ยังไม่เริ่ม/);
 assert.doesNotMatch(html, /https?:\/\/(?!www\.w3\.org)/);   // no external requests
+// one-screen layout: real viewport, safe areas, aspect-ratio columns, fit script, AGY chips
+assert.match(html, /viewport-fit=cover/); assert.match(html, /100dvh/); assert.match(html, /safe-area-inset-bottom/);
+assert.match(html, /min-aspect-ratio:5\/4/); assert.match(html, /min-aspect-ratio:2\/1/);
+assert.match(html, /visualViewport/); assert.match(html, /orientationchange/); assert.match(html, /class="chipcell"/); assert.match(html, /class="chip"/);
+assert.match(html, /<main class="[^"]*r2/);   // 5 active panels in 2 columns leave a free cell for the chips
+assert.doesNotMatch(html, /aspect-ratio:1\.9/);
 assert.equal((await r('/read-test/', { headers: { 'If-None-Match': page.headers.get('etag') } })).status, 304);
 assert.equal(await (await r('/read-test/data.json')).text(), snap);
 console.log('edge worker smoke test OK');
